@@ -4,17 +4,16 @@ import EntryPoint.dto.AccessTokenResponseDTO;
 import EntryPoint.dto.LoginResponseDTO;
 import EntryPoint.dto.UserDTO;
 import EntryPoint.dto.UserProfileDTO;
-import EntryPoint.exception.GlobalExceptionHandler;
+import EntryPoint.exception.GlobalExceptionHandler.*;
 import EntryPoint.repository.UserRepository;
 import EntryPoint.utils.JwtUtil;
+import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import EntryPoint.model.User;
-
-import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
@@ -29,19 +28,15 @@ public class UserService {
     private final EmailService emailService;
     private final StringRedisTemplate redisTemplate;
 
-    public Object register(UserDTO request) {
-        // Check if email already exists
+    public Object register(UserDTO request) throws MessagingException {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new RuntimeException("Email is already taken!");
+            throw new EmailAlreadyTakenException("Email is already taken!");
         }
 
-        // Generate OTP
         String otp = String.format("%06d", new Random().nextInt(999999));
 
-        // Store OTP in Redis with expiration
-        redisTemplate.opsForValue().set(request.getEmail(), otp, 5, TimeUnit.MINUTES);
+        redisTemplate.opsForValue().set(request.getEmail(), otp, 3, TimeUnit.MINUTES);
 
-        // Send OTP to user's email
         emailService.sendOTP(request.getEmail(), otp);
         User user = User.builder()
                 .email(request.getEmail())
@@ -52,32 +47,34 @@ public class UserService {
         return user.getEmail();
     }
 
-    public boolean verifyOTP(String email, String otp) {
-        // Retrieve OTP from Redis
+    public void verifyOTP(String email, String otp) {
         String storedOTP = redisTemplate.opsForValue().get(email);
 
-        // Validate OTP
-        if(storedOTP != null && storedOTP.equals(otp)) {
-            redisTemplate.delete(email);
-            User user = userRepository.findByEmail(email)
-                            .orElseThrow(() -> new RuntimeException("User not found!"));
-            user.setIsActive(true);
-            userRepository.save(user);
-            return true;
+        if (storedOTP == null) {
+            throw new ExpiredOTPException("OTP has expired. Please request a new OTP.");
         }
-        return false;
+
+        if (!storedOTP.equals(otp)) {
+            throw new InvalidOTPException("Invalid OTP. Please try again.");
+        }
+
+        redisTemplate.delete(email);
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found!"));
+        user.setIsActive(true);
+        userRepository.save(user);
     }
 
     public Object login(UserDTO request) {
-        // find user by email
         User user = userRepository.findByEmail(request.getEmail())
-                        .orElseThrow(() -> new GlobalExceptionHandler.UserNotFoundException("Invalid user!"));
+                        .orElseThrow(() -> new UserNotFoundException("Invalid user!"));
 
         if(!user.getIsActive()) {
-            throw new RuntimeException("User is not active. Please validate your OTP before logging in.");
+            throw new InvalidUserException("User is not active. Please validate your OTP before logging in.");
         }
+
         if(!passwordEncoder.matches(request.getPassword(), user.getPassword())){
-            throw new GlobalExceptionHandler.InvalidPasswordException("Invalid password!");
+            throw new InvalidPasswordException("Invalid password!");
         }
 
         String accessToken = jwtUtil.generateAccessToken(user.getEmail());
@@ -88,14 +85,11 @@ public class UserService {
 
     public Object getProfile(String email) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found!"));
+                .orElseThrow(() -> new UserNotFoundException("User not found!"));
         return new UserProfileDTO(user.getEmail());
     }
 
-    public Object refreshAccessToken(String refreshToken) {
-        if(!jwtUtil.validateToken(refreshToken)){
-            throw new RuntimeException("Invalid or expired refresh token!");
-        }
+    public Object refreshJwtToken(String refreshToken) {
         String email = jwtUtil.extractEmail(refreshToken);
         String newAccessToken = jwtUtil.generateAccessToken(email);
         return new AccessTokenResponseDTO(newAccessToken);

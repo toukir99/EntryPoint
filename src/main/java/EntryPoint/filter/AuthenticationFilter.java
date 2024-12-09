@@ -1,6 +1,10 @@
 package EntryPoint.filter;
 
+import EntryPoint.dto.ApiResponseDTO;
+import EntryPoint.exception.GlobalExceptionHandler;
+import EntryPoint.exception.GlobalExceptionHandler.*;
 import EntryPoint.utils.JwtUtil;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -9,11 +13,22 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
-
 import java.io.IOException;
 
 @RequiredArgsConstructor
 public class AuthenticationFilter extends OncePerRequestFilter {
+
+    private static final String BEARER_PREFIX = "Bearer ";
+    private static final String AUTH_HEADER = "Authorization";
+    private static final String REFRESH_TOKEN_HEADER = "Refresh-Token";
+    private static final String UNAUTHORIZED_MESSAGE = "Invalid or expired token!";
+    private static final String FORBIDDEN_MESSAGE = "Token has been invalidated. Please login again.";
+    private static final String MISSING_AUTH_HEADER_MESSAGE = "Authorization header missing or invalid!";
+    private static final String[] PUBLIC_ENDPOINTS = {
+            "/api/v1/auth/register",
+            "/api/v1/auth/verify-otp",
+            "/api/v1/auth/login"
+    };
 
     private final JwtUtil jwtUtil;
 
@@ -21,54 +36,94 @@ public class AuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
-        String authHeader = request.getHeader("Authorization");
-        String authRefreshTokenHeader = request.getHeader("Refresh-Token");
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7).trim();
-            System.out.println("token in filter: " + token);
-            if(authRefreshTokenHeader != null && authRefreshTokenHeader.startsWith("Bearer ")){
-                String refreshToken = authRefreshTokenHeader.substring(7).trim();
-                System.out.println("token in Refreshfilter: " + refreshToken);
-                if (jwtUtil.validateToken(token) && jwtUtil.validateToken(refreshToken)) {
-                    System.out.println("token in filter validation: " + refreshToken);
-                    if(jwtUtil.isTokenInvalidated(refreshToken) || jwtUtil.isTokenInvalidated(token)){
-                        System.out.println("token in error validation: " + token);
-                        response.sendError(HttpServletResponse.SC_FORBIDDEN, "Token has been invalidated. Please login again.");
-                        return;
-                    }
-                    String email = jwtUtil.extractEmail(token);
-                    // Set Authentication in SecurityContext
-                    UsernamePasswordAuthenticationToken authentication =
-                            new UsernamePasswordAuthenticationToken(email, null, null);
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
-                } else {
-                    response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired token!");
-                    return;
-                }
-            } else {
-                if (jwtUtil.validateToken(token)) {
-                    System.out.println("token for validation normal: " + token);
-                    if(jwtUtil.isTokenInvalidated(token)){
-                        System.out.println("token for normal validation error: " + token);
-                        response.sendError(HttpServletResponse.SC_FORBIDDEN, "Token has been invalidated. Please login again.");
-                        return;
-                    }
-                    String email = jwtUtil.extractEmail(token);
-                    // Set Authentication in SecurityContext
-                    UsernamePasswordAuthenticationToken authentication =
-                            new UsernamePasswordAuthenticationToken(email, null, null);
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
-                } else {
-                    response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired token!");
-                    return;
-                }
+        String requestURI = request.getRequestURI();
+
+        // Skip authentication for public endpoints
+        if (isPublicEndpoint(requestURI)) {
+            filterChain.doFilter(request, response); // Continue the filter chain for public routes
+            return;
+        }
+
+        String authHeader = request.getHeader(AUTH_HEADER);
+        String refreshTokenHeader = request.getHeader(REFRESH_TOKEN_HEADER);
+
+        // Validate tokens
+        if (authHeader != null && authHeader.startsWith(BEARER_PREFIX)) {
+            String accessToken = extractToken(authHeader);
+            String refreshToken = refreshTokenHeader != null && refreshTokenHeader.startsWith(BEARER_PREFIX)
+                    ? extractToken(refreshTokenHeader)
+                    : null;
+
+            try {
+                processTokens(response, accessToken, refreshToken);
+            } catch (SecurityException e) {
+                sendErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED, e.getMessage());
+                return;
             }
-        } else if (!request.getServletPath().startsWith("/api/v1/auth")) {
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Authorization header missing or invalid!");
+        } else {
+            sendErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED, MISSING_AUTH_HEADER_MESSAGE);
             return;
         }
 
         // Proceed with the request
         filterChain.doFilter(request, response);
+    }
+
+    private String extractToken(String header) {
+        return header.substring(BEARER_PREFIX.length()).trim();
+    }
+
+    private void processTokens(HttpServletResponse response, String accessToken, String refreshToken)
+            throws SecurityException, IOException {
+
+        if (!jwtUtil.validateToken(accessToken)) {
+            throw new SecurityException(UNAUTHORIZED_MESSAGE);
+        }
+
+        if (jwtUtil.isTokenInvalidated(accessToken)) {
+            sendErrorResponse(response, HttpServletResponse.SC_FORBIDDEN, FORBIDDEN_MESSAGE);
+            throw new SecurityException(FORBIDDEN_MESSAGE);
+        }
+
+        if (refreshToken != null) {
+            if (!jwtUtil.validateToken(refreshToken) || jwtUtil.isTokenInvalidated(refreshToken)) {
+                sendErrorResponse(response, HttpServletResponse.SC_FORBIDDEN, FORBIDDEN_MESSAGE);
+                throw new SecurityException(FORBIDDEN_MESSAGE);
+            }
+        }
+
+        String email = jwtUtil.extractEmail(accessToken);
+        if(email != null) {
+            setAuthentication(email);
+        } else {
+            throw new EmailExtractionFailedException("Email Extraction Failed!", null);
+        }
+    }
+
+    private void setAuthentication(String email) {
+        UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken(email, null, null);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+    }
+
+    private void sendErrorResponse(HttpServletResponse response, int statusCode, String message) throws IOException {
+        ApiResponseDTO errorResponse = ApiResponseDTO.errorResponse(message, null);
+
+        // Convert ApiResponseDTO to JSON
+        ObjectMapper objectMapper = new ObjectMapper();
+        String jsonResponse = objectMapper.writeValueAsString(errorResponse);
+
+        response.setStatus(statusCode);
+        response.setContentType("application/json");
+        response.getWriter().write(jsonResponse); // Write JSON response to output stream
+    }
+
+    private boolean isPublicEndpoint(String requestURI) {
+        for (String publicEndpoint : PUBLIC_ENDPOINTS) {
+            if (requestURI.startsWith(publicEndpoint)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

@@ -1,5 +1,6 @@
 package EntryPoint.service;
 
+import EntryPoint.exception.GlobalExceptionHandler.FailedSendMailException;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
@@ -10,9 +11,10 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class EmailService {
+
     private final JavaMailSender mailSender;
 
-    public void sendOTP(String toEmail, String otp) {
+    public void sendOTP(String toEmail, String otp) throws MessagingException {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true);
@@ -22,9 +24,8 @@ public class EmailService {
             helper.setText("Your OTP code is: " + otp, true);
 
             mailSender.send(message);
-        } catch (RuntimeException | MessagingException e) {
-            e.printStackTrace();
-            throw new RuntimeException("Failed to send mail", e);
+        } catch (FailedSendMailException e) {
+            throw new FailedSendMailException("Failed to send mail", e);
         }
     }
 }

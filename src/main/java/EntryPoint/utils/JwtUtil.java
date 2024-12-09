@@ -2,14 +2,12 @@ package EntryPoint.utils;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
-import io.lettuce.core.AbstractRedisAsyncCommands;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.util.Date;
 import java.util.HashSet;
-import java.util.Optional;
 import java.util.Set;
 
 @Component
@@ -45,9 +43,9 @@ public class JwtUtil {
                     .setSigningKey(getSigningKey())
                     .build()
                     .parseClaimsJws(token);
-            return true;
+            return true; // Return true if no exception is thrown
         } catch (Exception e) {
-            return false;
+            return false; // Token is valid if there's an exception, indicating the token is invalid
         }
     }
 
@@ -60,13 +58,16 @@ public class JwtUtil {
                 .getSubject();
     }
 
-    public void invalidateToken(String Token) {
-
-        invalidatedTokens.add(Token);
+    public void invalidateToken(String token) {
+        invalidatedTokens.add(token);
     }
 
     public boolean isTokenInvalidated(String token) {
         return invalidatedTokens.contains(token);
+    }
+
+    public String extractToken(String tokenHeader) {
+        return tokenHeader.substring(7).trim();
     }
 }
 

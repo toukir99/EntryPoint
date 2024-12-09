@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @Data
 @Builder
 @Entity
-@Table(name = "auth")
+@Table(name = "user_authentication")
 @AllArgsConstructor
 @NoArgsConstructor
 public class User {
@@ -23,6 +23,6 @@ public class User {
     @Column(nullable = false)
     private String password;
 
-    @Column(name = "isactive")
+    @Column(name = "is_active")
     private Boolean isActive;
 }
