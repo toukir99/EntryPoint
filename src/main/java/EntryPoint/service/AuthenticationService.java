@@ -14,44 +14,50 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import EntryPoint.model.User;
-import java.util.Random;
+
+import java.security.SecureRandom;
 import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
 
-public class UserService {
-    @Autowired
+public class AuthenticationService {
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final EmailService emailService;
     private final StringRedisTemplate redisTemplate;
 
-    public Object register(UserDTO request) throws MessagingException {
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new EmailAlreadyTakenException("Email is already taken!");
+    public Object registerUser(UserDTO request) throws MessagingException {
+        String email = request.getEmail();
+        if (userRepository.findByEmail(email).isPresent()) {
+            throw new EmailAlreadyExistsException("Email is already taken!");
         }
 
-        String otp = String.format("%06d", new Random().nextInt(999999));
+        SecureRandom secureRandom = new SecureRandom();
+        String otp;
 
-        redisTemplate.opsForValue().set(request.getEmail(), otp, 3, TimeUnit.MINUTES);
+        do {
+            otp = String.format("%06d", secureRandom.nextInt(1000000));
+        } while (redisTemplate.hasKey(email + ":" + otp));
+
+        redisTemplate.opsForValue().set(email, otp, 2, TimeUnit.MINUTES);
 
         emailService.sendOTP(request.getEmail(), otp);
         User user = User.builder()
-                .email(request.getEmail())
+                .email(email)
                 .password(passwordEncoder.encode(request.getPassword()))
                 .isActive(false)
                 .build();
         userRepository.save(user);
-        return user.getEmail();
+        return email;
     }
 
     public void verifyOTP(String email, String otp) {
         String storedOTP = redisTemplate.opsForValue().get(email);
 
         if (storedOTP == null) {
-            throw new ExpiredOTPException("OTP has expired. Please request a new OTP.");
+            throw new ExpiredOTPException("OTP has expired!");
         }
 
         if (!storedOTP.equals(otp)) {
@@ -65,7 +71,7 @@ public class UserService {
         userRepository.save(user);
     }
 
-    public Object login(UserDTO request) {
+    public Object loginUser(UserDTO request) {
         User user = userRepository.findByEmail(request.getEmail())
                         .orElseThrow(() -> new UserNotFoundException("Invalid user!"));
 
@@ -83,19 +89,19 @@ public class UserService {
         return new LoginResponseDTO(user.getEmail(), accessToken, refreshToken);
     }
 
-    public Object getProfile(String email) {
+    public Object getProfileUser(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("User not found!"));
         return new UserProfileDTO(user.getEmail());
     }
 
-    public Object refreshJwtToken(String refreshToken) {
+    public Object refreshAccessToken(String refreshToken) {
         String email = jwtUtil.extractEmail(refreshToken);
         String newAccessToken = jwtUtil.generateAccessToken(email);
         return new AccessTokenResponseDTO(newAccessToken);
     }
 
-    public boolean logout(String accessToken, String refreshToken) {
+    public boolean logoutUser(String accessToken, String refreshToken) {
         jwtUtil.invalidateToken(accessToken);
         jwtUtil.invalidateToken(refreshToken);
         return true;

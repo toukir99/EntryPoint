@@ -1,7 +1,6 @@
 package EntryPoint.filter;
 
 import EntryPoint.dto.ApiResponseDTO;
-import EntryPoint.exception.GlobalExceptionHandler;
 import EntryPoint.exception.GlobalExceptionHandler.*;
 import EntryPoint.utils.JwtUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -76,7 +75,7 @@ public class AuthenticationFilter extends OncePerRequestFilter {
     private void processTokens(HttpServletResponse response, String accessToken, String refreshToken)
             throws SecurityException, IOException {
 
-        if (!jwtUtil.validateToken(accessToken)) {
+        if (jwtUtil.validateToken(accessToken)) {
             throw new SecurityException(UNAUTHORIZED_MESSAGE);
         }
 
@@ -86,7 +85,7 @@ public class AuthenticationFilter extends OncePerRequestFilter {
         }
 
         if (refreshToken != null) {
-            if (!jwtUtil.validateToken(refreshToken) || jwtUtil.isTokenInvalidated(refreshToken)) {
+            if (jwtUtil.validateToken(refreshToken) || jwtUtil.isTokenInvalidated(refreshToken)) {
                 sendErrorResponse(response, HttpServletResponse.SC_FORBIDDEN, FORBIDDEN_MESSAGE);
                 throw new SecurityException(FORBIDDEN_MESSAGE);
             }
@@ -96,7 +95,7 @@ public class AuthenticationFilter extends OncePerRequestFilter {
         if(email != null) {
             setAuthentication(email);
         } else {
-            throw new EmailExtractionFailedException("Email Extraction Failed!", null);
+            throw new EmailExtractionFailedException("Email Extraction Failed!");
         }
     }
 

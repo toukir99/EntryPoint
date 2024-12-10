@@ -33,8 +33,8 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
 
-    public static class EmailAlreadyTakenException extends RuntimeException {
-        public EmailAlreadyTakenException(String message) {
+    public static class EmailAlreadyExistsException extends RuntimeException {
+        public EmailAlreadyExistsException(String message) {
             super(message);
         }
     }
@@ -50,6 +50,7 @@ public class GlobalExceptionHandler {
             super(message);
         }
     }
+
     public static class InvalidPasswordException extends RuntimeException {
         public InvalidPasswordException(String message) {
             super(message);
@@ -68,14 +69,20 @@ public class GlobalExceptionHandler {
         }
     }
 
-    public static class FailedSendMailException extends MessagingException {
-        public FailedSendMailException(String message, FailedSendMailException e) {
+    public static class FailedToSendMailException extends MessagingException {
+        public FailedToSendMailException(String message) {
             super(message);
         }
     }
 
     public static class EmailExtractionFailedException extends RuntimeException {
-        public EmailExtractionFailedException(String message, FailedSendMailException e) {
+        public EmailExtractionFailedException(String message) {
+            super(message);
+        }
+    }
+
+    public static class ExpiredJwtException extends RuntimeException {
+        public ExpiredJwtException(String message) {
             super(message);
         }
     }

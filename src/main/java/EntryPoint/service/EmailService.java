@@ -1,6 +1,6 @@
 package EntryPoint.service;
 
-import EntryPoint.exception.GlobalExceptionHandler.FailedSendMailException;
+import EntryPoint.exception.GlobalExceptionHandler.FailedToSendMailException;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
@@ -24,8 +24,8 @@ public class EmailService {
             helper.setText("Your OTP code is: " + otp, true);
 
             mailSender.send(message);
-        } catch (FailedSendMailException e) {
-            throw new FailedSendMailException("Failed to send mail", e);
+        } catch (FailedToSendMailException e) {
+            throw new FailedToSendMailException("Failed to send mail");
         }
     }
 }
