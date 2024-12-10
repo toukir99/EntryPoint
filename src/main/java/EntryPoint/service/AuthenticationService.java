@@ -7,15 +7,14 @@ import EntryPoint.dto.UserProfileDTO;
 import EntryPoint.exception.GlobalExceptionHandler.*;
 import EntryPoint.repository.UserRepository;
 import EntryPoint.utils.JwtUtil;
+import EntryPoint.utils.OTPUtil;
 import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import EntryPoint.model.User;
 
-import java.security.SecureRandom;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -25,23 +24,18 @@ public class AuthenticationService {
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
-    private final EmailService emailService;
+    private final OTPUtil otpUtil;
     private final StringRedisTemplate redisTemplate;
+    private final EmailService emailService;
 
     public Object registerUser(UserDTO request) throws MessagingException {
         String email = request.getEmail();
         if (userRepository.findByEmail(email).isPresent()) {
             throw new EmailAlreadyExistsException("Email is already taken!");
         }
+        String otp = otpUtil.generateOTP(email);
 
-        SecureRandom secureRandom = new SecureRandom();
-        String otp;
-
-        do {
-            otp = String.format("%06d", secureRandom.nextInt(1000000));
-        } while (redisTemplate.hasKey(email + ":" + otp));
-
-        redisTemplate.opsForValue().set(email, otp, 2, TimeUnit.MINUTES);
+        redisTemplate.opsForValue().set(email, otp, 2,TimeUnit.MINUTES);
 
         emailService.sendOTP(request.getEmail(), otp);
         User user = User.builder()
@@ -55,6 +49,7 @@ public class AuthenticationService {
 
     public void verifyOTP(String email, String otp) {
         String storedOTP = redisTemplate.opsForValue().get(email);
+        System.out.println(storedOTP);
 
         if (storedOTP == null) {
             throw new ExpiredOTPException("OTP has expired!");

@@ -50,6 +50,9 @@ public class JwtUtil {
     public boolean validateToken(String token) {
         try {
             Jwts.parserBuilder().setSigningKey(getSigningKey()).build().parseClaimsJws(token);
+            if (isTokenInvalidated(token)) {
+                throw new IllegalArgumentException("Token has been invalidated");
+            }
             return true;
         } catch (MalformedJwtException e) {
             throw new MalformedJwtException("Invalid JWT signature or malformed token");
