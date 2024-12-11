@@ -1,4 +1,4 @@
-package EntryPoint.utils;
+package entrypoint.utils;
 
 import io.jsonwebtoken.*;
 import org.springframework.beans.factory.annotation.Value;
@@ -10,7 +10,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
-import EntryPoint.exception.GlobalExceptionHandler.ExpiredJwtException;
+import entrypoint.exception.GlobalExceptionHandler.ExpiredJwtException;
 
 @Component
 public class JwtUtil {

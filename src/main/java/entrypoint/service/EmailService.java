@@ -1,6 +1,6 @@
-package EntryPoint.service;
+package entrypoint.service;
 
-import EntryPoint.exception.GlobalExceptionHandler.FailedToSendMailException;
+import entrypoint.exception.GlobalExceptionHandler.FailedToSendMailException;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;

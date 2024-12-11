@@ -1,4 +1,4 @@
-package EntryPoint.dto;
+package entrypoint.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

@@ -1,4 +1,4 @@
-package EntryPoint.utils;
+package entrypoint.utils;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -15,9 +15,11 @@ public class OTPUtil {
         SecureRandom secureRandom = new SecureRandom();
         String otp;
 
+        boolean emailExists;
         do {
             otp = String.format("%04d", secureRandom.nextInt(10000));
-        } while (redisTemplate.hasKey(email));
+            emailExists = Boolean.TRUE.equals(redisTemplate.hasKey(email));
+        } while(emailExists);
 
         return otp;
     }

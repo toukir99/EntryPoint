@@ -1,8 +1,8 @@
-package EntryPoint.filter;
+package entrypoint.filter;
 
-import EntryPoint.dto.ApiResponseDTO;
-import EntryPoint.exception.GlobalExceptionHandler.*;
-import EntryPoint.utils.JwtUtil;
+import entrypoint.dto.ApiResponseDTO;
+import entrypoint.exception.GlobalExceptionHandler.*;
+import entrypoint.utils.JwtUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -20,7 +20,6 @@ public class AuthenticationFilter extends OncePerRequestFilter {
     private static final String BEARER_PREFIX = "Bearer ";
     private static final String AUTH_HEADER = "Authorization";
     private static final String REFRESH_TOKEN_HEADER = "Refresh-Token";
-    private static final String UNAUTHORIZED_MESSAGE = "Invalid or expired token!";
     private static final String FORBIDDEN_MESSAGE = "Token has been invalidated. Please login again.";
     private static final String MISSING_AUTH_HEADER_MESSAGE = "Authorization header missing or invalid!";
     private static final String[] PUBLIC_ENDPOINTS = {
@@ -80,11 +79,9 @@ public class AuthenticationFilter extends OncePerRequestFilter {
             throw new SecurityException(FORBIDDEN_MESSAGE);
         }
 
-        if (refreshToken != null) {
-            if (!jwtUtil.validateToken(refreshToken)) {
-                sendErrorResponse(response, HttpServletResponse.SC_FORBIDDEN, FORBIDDEN_MESSAGE);
-                throw new SecurityException(FORBIDDEN_MESSAGE);
-            }
+        if (refreshToken != null && !jwtUtil.validateToken(refreshToken)) {
+            sendErrorResponse(response, HttpServletResponse.SC_FORBIDDEN, FORBIDDEN_MESSAGE);
+            throw new SecurityException(FORBIDDEN_MESSAGE);
         }
 
         String email = jwtUtil.extractEmail(accessToken);

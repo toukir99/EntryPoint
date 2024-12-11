@@ -64,7 +64,7 @@ dependencies {
 }
 flyway {
 	url = 'jdbc:postgresql://localhost:5432/auth'
-	user = 'auth_db'
+	user = System.getenv("DB_USER")
 	password = 'auth_db'
 	schemas = ['public']
 	locations = ['classpath:db/migration']

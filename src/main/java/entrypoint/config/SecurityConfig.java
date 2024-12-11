@@ -1,8 +1,8 @@
-package EntryPoint.config;
+package entrypoint.config;
 
-import EntryPoint.dto.ApiResponseDTO;
-import EntryPoint.filter.AuthenticationFilter;
-import EntryPoint.utils.JwtUtil;
+import entrypoint.dto.ApiResponseDTO;
+import entrypoint.filter.AuthenticationFilter;
+import entrypoint.utils.JwtUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -65,7 +65,7 @@ public class SecurityConfig {
                     try {
                         response.getWriter().write(objectMapper.writeValueAsString(errorResponse));
                     } catch (IOException e) {
-                        e.printStackTrace();
+                        throw new IOException("IO Exception");
                     }
                 }));
 

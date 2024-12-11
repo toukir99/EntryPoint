@@ -1,10 +1,10 @@
-package EntryPoint.controller;
+package entrypoint.controller;
 
-import EntryPoint.dto.ApiResponseDTO;
-import EntryPoint.dto.UserDTO;
-import EntryPoint.exception.GlobalExceptionHandler.*;
-import EntryPoint.service.AuthenticationService;
-import EntryPoint.utils.JwtUtil;
+import entrypoint.dto.ApiResponseDTO;
+import entrypoint.dto.UserDTO;
+import entrypoint.exception.GlobalExceptionHandler.*;
+import entrypoint.service.AuthenticationService;
+import entrypoint.utils.JwtUtil;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

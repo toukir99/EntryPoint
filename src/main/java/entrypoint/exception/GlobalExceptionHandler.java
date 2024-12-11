@@ -1,6 +1,6 @@
-package EntryPoint.exception;
+package entrypoint.exception;
 
-import EntryPoint.dto.ApiResponseDTO;
+import entrypoint.dto.ApiResponseDTO;
 import jakarta.mail.MessagingException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

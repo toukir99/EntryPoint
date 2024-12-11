@@ -1,4 +1,4 @@
-package EntryPoint.model;
+package entrypoint.model;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;

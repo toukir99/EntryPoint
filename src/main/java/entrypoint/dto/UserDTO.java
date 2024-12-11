@@ -1,4 +1,4 @@
-package EntryPoint.dto;
+package entrypoint.dto;
 
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;

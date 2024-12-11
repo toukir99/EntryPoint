@@ -1,19 +1,19 @@
-package EntryPoint.service;
+package entrypoint.service;
 
-import EntryPoint.dto.AccessTokenResponseDTO;
-import EntryPoint.dto.LoginResponseDTO;
-import EntryPoint.dto.UserDTO;
-import EntryPoint.dto.UserProfileDTO;
-import EntryPoint.exception.GlobalExceptionHandler.*;
-import EntryPoint.repository.UserRepository;
-import EntryPoint.utils.JwtUtil;
-import EntryPoint.utils.OTPUtil;
+import entrypoint.dto.AccessTokenResponseDTO;
+import entrypoint.dto.LoginResponseDTO;
+import entrypoint.dto.UserDTO;
+import entrypoint.dto.UserProfileDTO;
+import entrypoint.exception.GlobalExceptionHandler.*;
+import entrypoint.repository.UserRepository;
+import entrypoint.utils.JwtUtil;
+import entrypoint.utils.OTPUtil;
 import jakarta.mail.MessagingException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
-import EntryPoint.model.User;
+import entrypoint.model.User;
 
 import java.util.concurrent.TimeUnit;
 
@@ -50,7 +50,6 @@ public class AuthenticationService {
 
     public void verifyOTP(String email, String otp) {
         String storedOTP = redisTemplate.opsForValue().get(email);
-        System.out.println(storedOTP);
 
         if (storedOTP == null) {
             throw new ExpiredOTPException("OTP has expired!");
