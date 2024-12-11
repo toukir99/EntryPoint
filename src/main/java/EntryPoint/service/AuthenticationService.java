@@ -35,7 +35,8 @@ public class AuthenticationService {
         }
         String otp = otpUtil.generateOTP(email);
 
-        redisTemplate.opsForValue().set(email, otp, 2,TimeUnit.MINUTES);
+        int ttl = 2;
+        redisTemplate.opsForValue().set(email, otp, ttl, TimeUnit.MINUTES);
 
         emailService.sendOTP(request.getEmail(), otp);
         User user = User.builder()
