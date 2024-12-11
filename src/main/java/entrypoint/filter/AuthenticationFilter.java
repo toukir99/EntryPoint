@@ -74,12 +74,12 @@ public class AuthenticationFilter extends OncePerRequestFilter {
     private void processTokens(HttpServletResponse response, String accessToken, String refreshToken)
             throws SecurityException, IOException {
 
-        if (!jwtUtil.validateToken(accessToken)) {
+        if (jwtUtil.validateToken(accessToken)) {
             sendErrorResponse(response, HttpServletResponse.SC_FORBIDDEN, FORBIDDEN_MESSAGE);
             throw new SecurityException(FORBIDDEN_MESSAGE);
         }
 
-        if (refreshToken != null && !jwtUtil.validateToken(refreshToken)) {
+        if (refreshToken != null && jwtUtil.validateToken(refreshToken)) {
             sendErrorResponse(response, HttpServletResponse.SC_FORBIDDEN, FORBIDDEN_MESSAGE);
             throw new SecurityException(FORBIDDEN_MESSAGE);
         }

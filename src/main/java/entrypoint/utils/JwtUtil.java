@@ -53,7 +53,7 @@ public class JwtUtil {
             if (isTokenInvalidated(token)) {
                 throw new IllegalArgumentException("Token has been invalidated");
             }
-            return true;
+            return false;
         } catch (MalformedJwtException e) {
             throw new MalformedJwtException("Invalid JWT signature or malformed token");
         } catch (ExpiredJwtException e) {
