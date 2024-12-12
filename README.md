@@ -126,5 +126,3 @@ Future Improvements
 - Add role-based access control (RBAC) for authorization.
 
 By following the steps above, you can set up and run the EntryPoint Project locally and interact with its authentication APIs.
-# EntryPoint
-# EntryPoint
